@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { makeAutoObservable } from "mobx";
+import { API_BASE } from "@/config";
 
 export interface User {
   isAdmin: any;
@@ -73,10 +74,28 @@ class AuthStore {
     }
   };
 
-  logout = () => {
-    this.user = null;
-    this.isAuthenticated = false;
-    localStorage.removeItem("user");
+  logout = async () => {
+    try {
+      // End current chat session before logging out
+      if (this.user?.id) {
+        await fetch(`${API_BASE}/conversations`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: this.user.id,
+            endSession: true
+          }),
+        });
+      }
+
+      this.user = null;
+      localStorage.removeItem("user");
+      window.location.reload();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
   };
 
   setUser(user: User) {

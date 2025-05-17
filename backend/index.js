@@ -24,26 +24,119 @@ const FAQ = mongoose.model("FAQ", faqSchema);
 
 const conversationSchema = new mongoose.Schema({
   userId: String,
+  name: { type: String, default: "Default Chat" },
   messages: [{ user: String, message: String, response: String, timestamp: { type: Date, default: Date.now } }],
   createdAt: { type: Date, default: Date.now },
+  isActive: { type: Boolean, default: true }
 });
 const Conversation = mongoose.model("Conversation", conversationSchema);
 
 
 app.post("/api/conversations", async (req, res) => {
-  const { userId, message, response } = req.body;
-  let conversation = await Conversation.findOne({ userId });
-  if (!conversation) {
-    conversation = new Conversation({ userId, messages: [] });
+  const { userId, message, response, name, endSession } = req.body;
+  
+  // If ending a session
+  if (endSession) {
+    const currentActive = await Conversation.findOne({ 
+      userId, 
+      isActive: true 
+    });
+    
+    if (currentActive) {
+      currentActive.isActive = false;
+      await currentActive.save();
+    }
+    return res.status(200).json({ message: "Session ended successfully" });
   }
-  conversation.messages.push({ user: "user", message, response });
+  
+  // If creating a new chat session
+  if (!message && !response && name) {
+    // Find current active conversation
+    const currentActive = await Conversation.findOne({ 
+      userId, 
+      isActive: true 
+    });
+
+    // If there's an active conversation, deactivate it
+    if (currentActive) {
+      currentActive.isActive = false;
+      await currentActive.save();
+    }
+    
+    // Create new active conversation
+    const conversation = new Conversation({ 
+      userId, 
+      name: name || "Default Chat",
+      messages: [],
+      isActive: true,
+      createdAt: new Date()
+    });
+    await conversation.save();
+    return res.status(201).json(conversation);
+  }
+  
+  // If adding messages to existing conversation
+  let conversation = await Conversation.findOne({ 
+    userId, 
+    isActive: true 
+  });
+  
+  if (!conversation) {
+    conversation = new Conversation({ 
+      userId, 
+      name: "Default Chat",
+      messages: [],
+      isActive: true,
+      createdAt: new Date()
+    });
+  }
+  
+  if (message && response) {
+    conversation.messages.push({ 
+      user: "user", 
+      message, 
+      response,
+      timestamp: new Date()
+    });
+  }
+  
   await conversation.save();
   res.status(201).json(conversation);
 });
 
 app.get("/api/conversations/:userId", async (req, res) => {
-  const conversation = await Conversation.findOne({ userId: req.params.userId });
+  const { history } = req.query;
+  
+  if (history === "true") {
+    // Get all conversations for history, excluding the active one
+    const conversations = await Conversation.find({ 
+      userId: req.params.userId,
+      isActive: false 
+    }).sort({ createdAt: -1 });
+    return res.json(conversations);
+  }
+  
+  // Get active conversation for current chat
+  const conversation = await Conversation.findOne({ 
+    userId: req.params.userId,
+    isActive: true
+  });
   res.json(conversation || { messages: [] });
+});
+
+app.delete("/api/conversations/:userId", async (req, res) => {
+  try {
+    const conversation = await Conversation.findOne({ userId: req.params.userId });
+    if (!conversation) {
+      return res.status(404).json({ error: "Conversation not found" });
+    }
+    conversation.messages = [];
+    await conversation.save();
+    res.json({ message: "Conversation cleared successfully" });
+  } catch (error) {
+    console.error("Error clearing conversation:", error);
+    res.status(500).json({ error: "Failed to clear conversation" });
+  }
 });
 
 app.post("/api/faq", async (req, res) => {
@@ -58,7 +151,23 @@ app.get("/api/faq", async (req, res) => {
   res.json(faqs);
 });
 
-
+// Add endpoint to get a specific conversation
+app.get("/api/conversations/:userId/:conversationId", async (req, res) => {
+  try {
+    const conversation = await Conversation.findOne({
+      _id: req.params.conversationId,
+      userId: req.params.userId
+    });
+    
+    if (!conversation) {
+      return res.status(404).json({ error: "Conversation not found" });
+    }
+    
+    res.json(conversation);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch conversation" });
+  }
+});
 
 mongoose.connect("mongodb+srv://cherry:cherry@cluster0.nauaz.mongodb.net/?retryWrites=true&w=majority").then(() => {
     console.log("Connected to MongoDB");

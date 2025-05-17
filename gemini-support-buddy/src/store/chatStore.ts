@@ -2,11 +2,12 @@
 import { makeAutoObservable, runInAction } from "mobx";
 import { AIHelper } from "../utils/AIHelper";
 import { authStore } from "./authStore";
+import { toast } from "sonner";
 
 export interface Message {
   id: string;
   text: string;
-  sender: "user" | "ai";
+  sender: "user" | "ai" | "system";
   timestamp: Date;
   status?: "sending" | "sent" | "error";
 }
@@ -26,43 +27,86 @@ class ChatStore {
   isTyping = false;
   isLoading = false;
   error: string | null = null;
+  currentChatName: string = "Default Chat";
+  isHistoryView: boolean = false;
+  chatHistory: any[] = [];
 
   constructor() {
     makeAutoObservable(this);
-    this.fetchConversations();
     this.fetchDocuments();
+    this.fetchConversations();
   }
 
-  async fetchConversations() {
+  async fetchConversations(isHistory: boolean = false) {
     try {
       const userId = authStore.user?.id || "default";
-      const role = authStore.user?.role || "user";
-      const res = await fetch(`${API_BASE}/conversations/${userId}?role=${role}`);
+      const res = await fetch(`${API_BASE}/conversations/${userId}${isHistory ? '?history=true' : ''}`);
       const data = await res.json();
+      
       runInAction(() => {
-        // Split each message into user and AI messages for the chat history
-        const splitMessages: Message[] = [];
-        data.messages.forEach((msg: any) => {
-          // User message
-          splitMessages.push({
-            id: msg._id + "-user",
-            text: msg.message,
-            sender: "user",
-            timestamp: new Date(msg.timestamp),
-            status: "sent"
-          });
-          // AI response (if present)
-          if (msg.response) {
-            splitMessages.push({
-              id: msg._id + "-ai",
-              text: msg.response,
-              sender: "ai",
-              timestamp: new Date(msg.timestamp), // Optionally, use a different timestamp if available
+        if (isHistory) {
+          // For history view, store the conversations
+          this.chatHistory = data;
+          // Convert all messages from all conversations into a flat array
+          const allMessages: Message[] = [];
+          data.forEach((conversation: any) => {
+            // Add a header message for each conversation
+            allMessages.push({
+              id: `header-${conversation._id}`,
+              text: `Chat: ${conversation.name} (${new Date(conversation.createdAt).toLocaleString()})`,
+              sender: "system",
+              timestamp: new Date(conversation.createdAt),
               status: "sent"
             });
+            
+            conversation.messages?.forEach((msg: any) => {
+              allMessages.push({
+                id: `${msg._id}-user-${Date.now()}`,
+                text: msg.message,
+                sender: "user",
+                timestamp: new Date(msg.timestamp),
+                status: "sent"
+              });
+              if (msg.response) {
+                allMessages.push({
+                  id: `${msg._id}-ai-${Date.now()}`,
+                  text: msg.response,
+                  sender: "ai",
+                  timestamp: new Date(msg.timestamp),
+                  status: "sent"
+                });
+              }
+            });
+          });
+          this.messages = allMessages;
+          this.isHistoryView = true;
+        } else {
+          // For current chat view
+          if (data.name) {
+            this.currentChatName = data.name;
           }
-        });
-        this.messages = splitMessages;
+          const splitMessages: Message[] = [];
+          data.messages?.forEach((msg: any) => {
+            splitMessages.push({
+              id: `${msg._id}-user-${Date.now()}`,
+              text: msg.message,
+              sender: "user",
+              timestamp: new Date(msg.timestamp),
+              status: "sent"
+            });
+            if (msg.response) {
+              splitMessages.push({
+                id: `${msg._id}-ai-${Date.now()}`,
+                text: msg.response,
+                sender: "ai",
+                timestamp: new Date(msg.timestamp),
+                status: "sent"
+              });
+            }
+          });
+          this.messages = splitMessages;
+          this.isHistoryView = false;
+        }
       });
     } catch (error) {
       console.error("Failed to fetch conversations:", error);
@@ -86,27 +130,6 @@ class ChatStore {
     }
   }
 
-  async fetchAllChatHistory() {
-    try {
-      const userId = authStore.user?.id || "default";
-      const res = await fetch(`${API_BASE}/chat/history/${userId}`);
-      const data = await res.json();
-      runInAction(() => {
-        const newMessages = data.map((msg: any) => ({
-          id: msg._id,
-          text: msg.message,
-          sender: msg.user === "ai" ? "ai" : "user",
-          response: msg.response,
-          timestamp: new Date(msg.timestamp),
-          status: "sent"
-        }));
-        this.messages = [...this.messages, ...newMessages];
-      });
-    } catch (error) {
-      console.error("Failed to fetch all chat history:", error);
-    }
-  }
-
   async fetchAllAIMessages(){
 
   }
@@ -115,7 +138,7 @@ class ChatStore {
     if (!text.trim()) return;
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: `user-${Date.now()}`,
       text,
       sender: "user",
       timestamp: new Date(),
@@ -150,7 +173,7 @@ class ChatStore {
 
         // Add the AI response as a separate message
         const aiMessage: Message = {
-          id: saved._id + "-ai",
+          id: `ai-${Date.now()}`,
           text: response,
           sender: "ai",
           timestamp: new Date(saved.timestamp),
@@ -203,14 +226,53 @@ class ChatStore {
 
   clearChat = async () => {
     try {
-      const userId = authStore.user?.id || "default";
-      await fetch(`${API_BASE}/chat/clear/${userId}`, { method: "DELETE" });
-      runInAction(() => {
-        this.messages = [];
+      // Generate a new chat name
+      const newChatName = this.generateChatName();
+      
+      // Create a new chat session
+      const newChatResponse = await fetch(`${API_BASE}/conversations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: authStore.user?.id,
+          name: newChatName,
+        }),
       });
+
+      if (!newChatResponse.ok) {
+        throw new Error('Failed to create new chat session');
+      }
+
+      // Clear current messages and update chat name
+      this.messages = [];
+      this.currentChatName = newChatName;
+      this.isHistoryView = false;
+      
+      toast.success('New chat session started');
     } catch (error) {
-      console.error("Failed to clear chat:", error);
+      console.error('Error starting new chat:', error);
+      toast.error('Failed to start new chat');
     }
+  };
+
+  private generateChatName = () => {
+    const adjectives = [
+      'Quick', 'Smart', 'Efficient', 'Helpful', 'Friendly',
+      'Expert', 'Professional', 'Reliable', 'Dynamic', 'Innovative'
+    ];
+    
+    const nouns = [
+      'Support', 'Assistance', 'Guidance', 'Help', 'Service',
+      'Chat', 'Session', 'Conversation', 'Discussion', 'Consultation'
+    ];
+
+    const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    return `${randomAdjective} ${randomNoun} - ${timestamp}`;
   };
 }
 

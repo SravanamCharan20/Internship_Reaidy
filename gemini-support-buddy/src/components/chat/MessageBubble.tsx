@@ -1,72 +1,48 @@
-
 import React from "react";
 import { cn } from "@/lib/utils";
-import { Message } from "@/store/chatStore";
-import { CheckCircle, AlertCircle, Car, MessageSquare } from "lucide-react";
+import { Car, MessageSquare, CheckCircle, AlertCircle } from "lucide-react";
 
 interface MessageBubbleProps {
-  message: Message;
+  message: {
+    text: string;
+    sender: "user" | "ai" | "system";
+    timestamp: Date;
+    status?: "sending" | "sent" | "error";
+  };
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
-  const isUserMessage = message.sender === "user";
-  
-  return (
-    <div
-      className={cn(
-        "flex w-full mb-4",
-        isUserMessage ? "justify-end" : "justify-start"
-      )}
-    >
-      {!isUserMessage && (
-        <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white mr-2 flex-shrink-0">
-          <Car className="h-4 w-4" />
-        </div>
-      )}
-      <div
-        className={cn(
-          "max-w-[80%] rounded-lg py-2 px-4 shadow-sm",
-          isUserMessage 
-            ? "bg-chat-user text-foreground rounded-tr-none" 
-            : "bg-gradient-to-r from-primary to-secondary text-white rounded-tl-none"
-        )}
-      >
-        <div className="whitespace-pre-wrap break-words leading-relaxed">
+  const isUser = message.sender === "user";
+  const isSystem = message.sender === "system";
+
+  if (isSystem) {
+    return (
+      <div className="flex justify-center my-4">
+        <div className="bg-gray-100 text-gray-600 px-4 py-2 rounded-full text-sm font-medium">
           {message.text}
         </div>
-        {message.status && (
-          <div className="flex items-center justify-end mt-1 text-xs">
-            {message.status === "sending" && (
-              <span className="opacity-70">Sending...</span>
-            )}
-            {message.status === "sent" && (
-              <span className="flex items-center opacity-70">
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Sent
-              </span>
-            )}
-            {message.status === "error" && (
-              <span className="flex items-center text-red-500">
-                <AlertCircle className="h-3 w-3 mr-1" />
-                Failed to get response
-              </span>
-            )}
-          </div>
-        )}
-        <div className="text-xs opacity-70 mt-1">
-          {message.timestamp.toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit'
-          })}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`flex ${isUser ? "justify-end" : "justify-start"} mb-2 items-end gap-2 w-full`}>
+      {!isUser && (
+        <div className="flex items-center justify-center bg-gray-300 text-gray-600 rounded-full h-8 w-8 shadow-md">AI</div>
+      )}
+      <div className={`relative max-w-[75%] rounded-3xl px-5 py-3 shadow-md break-words ${isUser ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white" : "bg-white text-gray-800 border border-gray-200"}`}>
+        <p className="text-md font-medium break-words">{message.text}</p>
+        <div className={`text-xs mt-1 ${isUser ? "text-blue-200" : "text-gray-500"} text-right`}>
+          {new Date(message.timestamp).toLocaleString([], { hour: '2-digit', minute: '2-digit', hour12: true, month: 'short', day: '2-digit' })}
         </div>
       </div>
-      {isUserMessage && (
-        <div className="h-8 w-8 rounded-full bg-zinc-200 flex items-center justify-center ml-2 flex-shrink-0">
-          <MessageSquare className="h-4 w-4 text-zinc-600" />
-        </div>
+      {isUser && (
+        <div className="flex items-center justify-center bg-blue-400 text-white rounded-full h-8 w-8 shadow-md">U</div>
       )}
     </div>
   );
+  
+  
 };
-
 export default MessageBubble;
+

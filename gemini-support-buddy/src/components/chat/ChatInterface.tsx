@@ -3,11 +3,12 @@ import React, { useState, useEffect, useRef } from "react";
 import { observer } from "mobx-react-lite";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Send, Car, X } from "lucide-react";
+import { Send, Car, X, LogOut } from "lucide-react";
 import { chatStore } from "@/store/chatStore";
 import { authStore } from "@/store/authStore";
 import MessageBubble from "./MessageBubble";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import DocumentUpload from "@/components/admin/DocumentUpload";
 
 const FAQs = [
   {
@@ -52,159 +53,123 @@ const ChatInterface: React.FC = observer(() => {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-white">
       {/* Chat Header */}
-      <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary/20 to-secondary/20">
-        <div className="flex items-center">
-          <div className="bg-primary rounded-full p-2 mr-3">
-            <Car className="h-5 w-5 text-white" />
+      <div className="flex w-3/4 mx-auto rounded-full m-3 items-center justify-between p-3 border border-gray-500 bg-gradient-to-r from-gray-50 to-white backdrop-blur-md sticky top-0 z-10 shadow-md">
+        <div className="flex items-center gap-3">
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-full p-3 shadow-xl">
+            <Car className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h2 className="font-semibold">AutoCare Assistant</h2>
-            <p className="text-sm text-muted-foreground">
-              24/7 Vehicle Service Support
-            </p>
+            <h2 className="font-bold text-xl text-gray-900">AutoCare Assistant</h2>
+            <p className="text-sm text-gray-600">{chatStore.currentChatName}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground hidden md:block">
-            Welcome, {authStore.user?.username}
-          </span>
+        <div className="flex items-center gap-4">
+          <span className="text-lg text-gray-600 hidden md:block">Welcome, <span className="text-blue-600 font-bold">{authStore.user?.username}</span></span>
           <Button 
             variant="outline" 
             size="sm"
             onClick={() => authStore.logout()}
-          >
-            Logout
+            className="rounded-full border-2 border-red-500 text-md hover:bg-red-600 hover:text-white transition-all duration-300">
+            <LogOut className="h-4 w-4 mr-1" /> Logout
           </Button>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => chatStore.clearChat()}
-          >
-            Clear Chat
+            className="text-gray-600 border-2 border-gray-500 rounded-full hover:text-blue-600 transition-all duration-300">
+            <X className="h-4 w-4 mr-1" /> Clear Chat
           </Button>
-          {/* <Button
-            variant="outline"
-            size="sm"
-            onClick={() => chatStore.fetchAllChatHistory()}
-          >
-            Load Full History
-          </Button> */}
           <Button
             variant="outline"
             size="sm"
             onClick={() => window.location.href = "/history"}
-          >
+            className="text-gray-600 border-2 border-gray-500 rounded-full hover:text-blue-600 hover:bg-blue-50 transition-all duration-300">
             View History
           </Button>
         </div>
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 p-4 overflow-y-auto bg-gray-50">
-        {chatStore.messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full">
-            <div className="text-center text-muted-foreground max-w-md">
-              <Car className="h-12 w-12 mx-auto text-primary mb-4" />
-              <h3 className="font-medium text-lg">Welcome to AutoCare Support</h3>
-              <p className="text-sm mb-6">Ask a question about your vehicle, our services, or maintenance tips</p>
-              
-              <Button 
-                variant="outline"
-                onClick={() => setShowFaqs(!showFaqs)}
-                className="mb-4"
-              >
-                {showFaqs ? "Hide FAQs" : "View Common Questions"}
-              </Button>
-              
-              {showFaqs && (
-                <div className="mt-4 text-left bg-white rounded-lg shadow p-4">
-                  <Accordion type="single" collapsible className="w-full">
-                    {FAQs.map((faq, index) => (
-                      <AccordionItem key={index} value={`item-${index}`}>
-                        <AccordionTrigger className="text-left hover:text-primary">
-                          {faq.question}
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <p className="text-sm text-gray-600 mb-2">{faq.answer}</p>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            onClick={() => handleFaqClick(faq.question)}
-                            className="text-xs"
-                          >
-                            Ask this question
-                          </Button>
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          chatStore.messages.map((msg) => (
-            <MessageBubble key={msg.id} message={msg} />
-          ))
-        )}
-        
-        {/* AI typing indicator */}
-        {chatStore.isTyping && (
-          <div className="flex w-full mb-4 justify-start">
-            <div className="flex items-center">
-              <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white mr-2">
-                <Car className="h-4 w-4" />
-              </div>
-              <div className="bg-chat-ai-light text-foreground rounded-lg rounded-tl-none py-2 px-4">
-                <div className="typing-indicator">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Suggested Questions */}
-      {chatStore.messages.length > 0 && !chatStore.isTyping && (
-        <div className="px-4 py-2 border-t flex gap-2 overflow-x-auto">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => chatStore.sendMessage("What maintenance is recommended for a car with 50,000 miles?")}
-          >
-            Maintenance at 50k miles
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => chatStore.sendMessage("How often should I replace my brake pads?")}
-          >
-            Brake replacement
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => chatStore.sendMessage("What causes a check engine light?")}
-          >
-            Check engine light
-          </Button>
+      <div className="flex-1 p-4 pb-24 w-3/4 border-2 border-gray-200 rounded-lg mx-auto overflow-y-auto">
+  {chatStore.messages.length === 0 ? (
+    <div className="flex flex-col items-center justify-center h-full">
+      <div className="text-center text-gray-600 max-w-md">
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-full p-4 w-16 h-16 mx-auto mb-4 shadow-lg">
+          <Car className="h-8 w-8 text-white" />
         </div>
-      )}
+        <h3 className="font-medium text-xl text-gray-900 mb-2">Welcome to AutoCare Support</h3>
+        <p className="text-gray-600 mb-6">Ask a question about your vehicle, our services, or maintenance tips</p>
+
+        <Button 
+          variant="outline"
+          onClick={() => setShowFaqs(!showFaqs)}
+          className="mb-4 hover:bg-gray-50"
+        >
+          {showFaqs ? "Hide FAQs" : "View Common Questions"}
+        </Button>
+
+        {showFaqs && (
+          <div className="mt-4 text-left bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl border border-gray-100 p-6">
+            <Accordion type="single" collapsible className="w-full">
+              {FAQs.map((faq, index) => (
+                <AccordionItem key={index} value={`item-${index}`}>
+                  <AccordionTrigger className="text-left hover:text-blue-600">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <p className="text-gray-600 mb-2">{faq.answer}</p>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => handleFaqClick(faq.question)}
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    >
+                      Ask this question
+                    </Button>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        )}
+      </div>
+    </div>
+  ) : (
+    chatStore.messages.map((msg) => (
+      <MessageBubble key={msg.id} message={msg} />
+    ))
+  )}
+
+  {/* AI typing indicator */}
+  {chatStore.isTyping && (
+    <div className="flex w-full mb-4 justify-start">
+      <div className="flex items-center">
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-full p-2 mr-2 shadow-lg">
+          <Car className="h-4 w-4 text-white" />
+        </div>
+        <div className="bg-white/80 backdrop-blur-lg text-gray-900 rounded-2xl rounded-tl-none py-2 px-4 shadow-sm border border-gray-100">
+          <div className="typing-indicator">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
+
+  <div ref={messagesEndRef} />
+  </div>
 
       {/* Message Input */}
       <form 
-        className="p-4 border-t flex gap-2 bg-white"
+        className="fixed bottom-4 h-20 left-1/2 transform -translate-x-1/2 p-5 border-t rounded-full w-11/12 sm:w-1/2 items-center justify-center border-gray-100 flex gap-2 bg-white/80 backdrop-blur-lg shadow-lg"
         onSubmit={handleSendMessage}
       >
         <Input
-          className="flex-1"
+          className="flex-1 bg-white/50 rounded-full border-gray-200 px-4 py-2"
           placeholder="Ask about our services, maintenance or repairs..."
           value={message}
           onChange={(e) => setMessage(e.target.value)}
@@ -213,8 +178,9 @@ const ChatInterface: React.FC = observer(() => {
         <Button 
           type="submit" 
           disabled={chatStore.isTyping || !message.trim()}
+          className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-full shadow-md px-3 py-2"
         >
-          <Send className="h-4 w-4 mr-2" />
+          <Send className="h-4 w-4" />
           Send
         </Button>
       </form>
