@@ -19,7 +19,7 @@ export interface Document {
   uploadedAt: Date;
 }
 
-const API_BASE = "http://localhost:3000/api";
+const API_BASE = "https://internship-reaidy-bay6.vercel.app/api";
 
 class ChatStore {
   messages: Message[] = [];

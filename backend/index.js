@@ -1,16 +1,32 @@
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
+import dotenv from "dotenv";
+
+// Load environment variables
+dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:8080",
+  "https://internship-reaidy-2.vercel.app",  // Frontend deployed URL
+  "https://internship-reaidy-bay6.vercel.app" // Backend deployed URL
+];
+
 app.use(cors({
-    origin: ["http://localhost:5173", "http://localhost:8080"],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error("CORS policy does not allow this origin"), false);
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
 
@@ -169,13 +185,21 @@ app.get("/api/conversations/:userId/:conversationId", async (req, res) => {
   }
 });
 
-mongoose.connect("mongodb+srv://cherry:cherry@cluster0.nauaz.mongodb.net/?retryWrites=true&w=majority").then(() => {
+// Update MongoDB connection to use environment variable
+mongoose.connect(process.env.MONGODB_URI || "mongodb+srv://cherry:cherry@cluster0.nauaz.mongodb.net/?retryWrites=true&w=majority")
+  .then(() => {
     console.log("Connected to MongoDB");
-  }).catch((err) => {
-    console.log(err);
+  })
+  .catch((err) => {
+    console.error("MongoDB connection error:", err);
   });
 
+// Only start the server if not in production (Vercel)
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// Export for Vercel
+export default app;
