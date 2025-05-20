@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { observer } from "mobx-react-lite";
 import { Button } from "@/components/ui/button";
@@ -30,27 +29,28 @@ const AuthForm: React.FC = observer(() => {
   };
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold text-center">Login</CardTitle>
-        <CardDescription className="text-center">
+    <Card className="w-full max-w-[95%] sm:max-w-md mx-auto">
+      <CardHeader className="space-y-1 p-4 sm:p-6">
+        <CardTitle className="text-xl sm:text-2xl font-bold text-center">Login</CardTitle>
+        <CardDescription className="text-center text-sm sm:text-base">
           Enter your credentials to access the chat platform
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
+        <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
+          <div className="space-y-1.5 sm:space-y-2">
+            <Label htmlFor="username" className="text-sm sm:text-base">Username</Label>
             <Input 
               id="username" 
               placeholder="Username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
+              className="text-sm sm:text-base"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+          <div className="space-y-1.5 sm:space-y-2">
+            <Label htmlFor="password" className="text-sm sm:text-base">Password</Label>
             <Input 
               id="password" 
               type="password"
@@ -58,18 +58,19 @@ const AuthForm: React.FC = observer(() => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              className="text-sm sm:text-base"
             />
           </div>
-          <div className="text-xs text-muted-foreground">
+          <div className="text-[10px] sm:text-xs text-muted-foreground space-y-0.5 sm:space-y-1">
             <p>Demo credentials:</p>
             <p>User: username = "user", password = "password"</p>
             <p>Admin: username = "admin", password = "admin"</p>
           </div>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="p-4 sm:p-6 pt-0 sm:pt-0">
           <Button
             type="submit"
-            className="w-full"
+            className="w-full text-sm sm:text-base py-2 sm:py-2.5"
             disabled={authStore.isLoading}
           >
             {authStore.isLoading ? "Logging in..." : "Login"}
