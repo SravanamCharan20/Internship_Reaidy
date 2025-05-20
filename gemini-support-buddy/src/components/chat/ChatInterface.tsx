@@ -55,7 +55,7 @@ const ChatInterface: React.FC = observer(() => {
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Chat Header */}
-      <div className="w-full bg-white ml-52 backdrop-blur-lg sticky top-0 z-10 border-b border-gray-100">
+      <div className="w-full bg-white backdrop-blur-lg sticky top-0 z-10 border-b border-gray-100">
         <div className="flex flex-col sm:flex-row w-full sm:w-3/4 mx-auto rounded-full m-2 sm:m-3 items-center justify-between p-2 sm:p-3 border border-gray-500 bg-gradient-to-r from-gray-50 to-white shadow-md">
           <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-0">
             <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-full p-2 sm:p-3 shadow-xl">
