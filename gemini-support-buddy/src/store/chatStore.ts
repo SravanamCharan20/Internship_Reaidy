@@ -19,7 +19,7 @@ export interface Document {
   uploadedAt: Date;
 }
 
-const API_BASE = "https://internship-reaidy-bay6.vercel.app/api";
+const API_BASE = "https://internship-reaidy.onrender.com/api";
 
 class ChatStore {
   messages: Message[] = [];

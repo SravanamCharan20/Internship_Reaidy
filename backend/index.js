@@ -15,7 +15,8 @@ const allowedOrigins = [
   "http://localhost:8080",
   "https://internship-reaidy-2.vercel.app",  // Frontend deployed URL
   "https://internship-reaidy-bay6.vercel.app", // Backend deployed URL
-  "https://internship-reaidy-backend.onrender.com" // Render backend URL
+  "https://internship-reaidy-backend.onrender.com", // Render backend URL
+  "https://internship-reaidy.onrender.com" // New Render backend URL
 ];
 
 app.use(cors({

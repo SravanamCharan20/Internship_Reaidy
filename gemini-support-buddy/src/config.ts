@@ -1,1 +1,1 @@
-export const API_BASE = "https://internship-reaidy-bay6.vercel.app/api"; 
+export const API_BASE = "https://internship-reaidy.onrender.com/api"; 
