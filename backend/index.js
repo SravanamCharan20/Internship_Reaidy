@@ -14,7 +14,8 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:8080",
   "https://internship-reaidy-2.vercel.app",  // Frontend deployed URL
-  "https://internship-reaidy-bay6.vercel.app" // Backend deployed URL
+  "https://internship-reaidy-bay6.vercel.app", // Backend deployed URL
+  "https://internship-reaidy-backend.onrender.com" // Render backend URL
 ];
 
 app.use(cors({
@@ -189,17 +190,14 @@ app.get("/api/conversations/:userId/:conversationId", async (req, res) => {
 mongoose.connect(process.env.MONGODB_URI || "mongodb+srv://cherry:cherry@cluster0.nauaz.mongodb.net/?retryWrites=true&w=majority")
   .then(() => {
     console.log("Connected to MongoDB");
+    // Start the server after successful database connection
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
   })
   .catch((err) => {
     console.error("MongoDB connection error:", err);
   });
-
-// Only start the server if not in production (Vercel)
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-  });
-}
 
 // Export for Vercel
 export default app;
